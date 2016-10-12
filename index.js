@@ -7,43 +7,102 @@ var io = require('socket.io').listen(server);
 app.set('port', process.env.PORT || 3000)
 
 var clients = [];
-var ID = 0;
+var matches = [];
+var playerID = 0;
+var matchID = 0;
 
 
-io.on("connection", function (user) {
+io.on("connection", function(user) {
 
     //only me
     user.emit("NEW_USER");
 
     // only others
     user.broadcast.emit("NEW_USER");
-    
+
     // all
     io.emit("NEW_USER");
 
-    //var currentUser;
-
     user.on("USER_CONNECT", function () {
-        ID++;
-        console.log('New User with ID '+ ID +' connected!');
 
-        user.emit("SET_PLAYERID", { playerID: ID })
+        playerID++;
+        console.log('New User with ID ' + playerID + ' connected!');
 
-        //for (var i = 0; i < clients.length; i++) {
-        //    user.emit("USER_CONNECTED", { name: clients[i].data });
+        // prepare data
+        user.data = { playerID: 0, name: "", matchID: "", posX: 0, posZ: 0 }
 
-        //    console.log(clients[i].name + " is connected!");
-        //};
+        user.data.playerID = playerID;
+        user.emit("SET_PLAYERID", { playerID: playerID })
+
+
     });
 
-    user.on("PLAY", function (data) {
+    user.on("CREATE_MATCH", function (data) {
 
-        console.log(data.name+ " joined the game! PARTY HARD!");
-        user.data = {playerID: ID, name:data.name}
+        // create new matchID
+        matchID++;
+
+        // set user name
+        user.data.name = data.name;
+
+        // prepare data
+        var match = [];
+
+        // debug
+        user.data.matchID = "test";
+
+        //// create match string
+        //user.data.matchID = "Match"+ matchID.toString();
+        console.log(user.data.name + " created a new match " + user.data.matchID);
+
+        // add match to array
+        match.matchID = user.matchID;
+        match.push(data.spawn0);
+        match.push(data.spawn1);
+        match.push(data.spawn2);
+        match.push(data.spawn3);
+
+        matches.push(match);
+        user.match = match;
+
+        // join room
+        user.join(user.data.matchID);
+        io.to(user.data.matchID).emit("MATCH_CREATED");
+
+        console.log(match.matchID);
+        for (var i = 0; i < match.length; i++) {
+            console.log(match[i]);
+        }
+    });
+
+    user.on("JOIN_MATCH", function (data) {
+
+        // debug
+        data.matchID = "test";
+
+        console.log(user.data.playerID + "joined " + data.matchID);
+        user.data.matchID = data.matchID;
+
+        // join room
+        user.join(user.data.matchID);
+    });
+
+    user.on("READY", function (data) {
+
+        console.log(data.name+ " joined the game! PARTY HARD!" + "(" + user.data.matchID + ")");
+        user.data.name = data.name;
 
         clients.push(user);
-        user.emit("PLAY", user.data);
-        user.broadcast.emit("USER_CONNECTED", user.data);
+        console.log(user.data.matchID);
+
+        // send already connected players
+        //for (var i = 0; i < clients.length; i++) {
+        //    if (clients[i].data.matchID === user.data.matchID) {
+        //        user.to(user.data.matchID).emit("USER_CONNECTED", clients[i].data);
+        //    }
+        //};
+
+        user.to(user.data.matchID).emit("USER_CONNECTED", user.data);
 
 
         //// send welcome message
@@ -71,22 +130,21 @@ io.on("connection", function (user) {
 
     user.on("disconnect", function() {
 
-        console.log("User disconnected");
+        //console.log("User disconnected "+ user.matchID);
 
-        user.broadcast.emit("USER_DISCONNECTED", user.data);
+        //user.broadcast.emit("USER_DISCONNECTED", user.data);
 
         for (var i = 0; i < clients.length; i++) {
-            if (clients[i].playerID === user.data.playerID) {
+            if (clients[i] === user) {
                 console.log("User " + clients[i].name + " disconnected");
                 clients.splice(i, 1);
             }
         };
     })
-
-
 });
 
 server.listen(app.get('port'), function ()
 {
     console.log("------------------- SERVER IS RUNNING! YES BABY! :D");
+    console.log("---------------------------------------------------");
 });
