@@ -11,7 +11,6 @@ var matches = [];
 var playerID = 0;
 var matchID = 0;
 
-
 io.on("connection", function(user) {
 
     //only me
@@ -29,7 +28,7 @@ io.on("connection", function(user) {
         console.log('New User with ID ' + playerID + ' connected!');
 
         // prepare data
-        user.data = { playerID: 0, name: "", matchID: "", posX: 0, posZ: 0 }
+        user.data = { playerID: 0, name: "", matchID: "", pos: "" }
 
         user.data.playerID = playerID;
         user.emit("SET_PLAYERID", { playerID: playerID })
@@ -46,22 +45,26 @@ io.on("connection", function(user) {
         user.data.name = data.name;
 
         // prepare data
-        var match = [];
+        var match = {matchID:"", startPos: [] };
 
         // debug
-        user.data.matchID = "test";
+        user.data.matchID = data.matchID;
 
         //// create match string
         //user.data.matchID = "Match"+ matchID.toString();
         console.log(user.data.name + " created a new match " + user.data.matchID);
 
-        // add match to array
-        match.matchID = user.matchID;
-        match.push(data.spawn0);
-        match.push(data.spawn1);
-        match.push(data.spawn2);
-        match.push(data.spawn3);
+        match.matchID = user.data.matchID;
 
+        // add startpositions to match
+        match.startPos.push(data.spawn0);
+        match.startPos.push(data.spawn1);
+        match.startPos.push(data.spawn2);
+        match.startPos.push(data.spawn3);
+
+        console.log(match.name);
+
+        // add match to array
         matches.push(match);
         user.match = match;
 
@@ -70,21 +73,23 @@ io.on("connection", function(user) {
         io.to(user.data.matchID).emit("MATCH_CREATED");
 
         console.log(match.matchID);
-        for (var i = 0; i < match.length; i++) {
-            console.log(match[i]);
+        console.log(match.startPos.length);
+        for (var i = 0; i < match.startPos.length; i++) {
+            console.log(match.startPos[i]);
         }
     });
 
     user.on("JOIN_MATCH", function (data) {
 
         // debug
-        data.matchID = "test";
+        //data.matchID = "test";
 
         console.log(user.data.playerID + "joined " + data.matchID);
         user.data.matchID = data.matchID;
 
         // join room
         user.join(user.data.matchID);
+
     });
 
     user.on("READY", function (data) {
@@ -93,38 +98,70 @@ io.on("connection", function(user) {
         user.data.name = data.name;
 
         clients.push(user);
-        console.log(user.data.matchID);
 
-        // send already connected players
-        //for (var i = 0; i < clients.length; i++) {
-        //    if (clients[i].data.matchID === user.data.matchID) {
-        //        user.to(user.data.matchID).emit("USER_CONNECTED", clients[i].data);
-        //    }
-        //};
+        //save already connected players
+        var otherPlayers = [];
+        for (var i = 0; i < clients.length; i++) {
+            if (clients[i].data.matchID == user.data.matchID && clients[i].data.playerID != user.data.playerID) {
+                otherPlayers.push(clients[i].data)
+            }
+        };
 
-        user.to(user.data.matchID).emit("USER_CONNECTED", user.data);
+        // send other players only to me
+        if(otherPlayers.length != 0)
+        {
+            console.log("Send other players to " + user.data.name)
+            user.emit("OTHER_PLAYERS",  { otherPlayers } );
+        }
 
-
-        //// send welcome message
-        //var users = [];
-        //for (var i = 0; i < clients.length; i++)
-        //    users.push(clients[i].data);
-        //user.emit('OTHER_PLAYERS', users);
+        // send to everyone that i am connected
+        user.to(user.data.matchID).broadcast.emit("USER_CONNECTED", user.data);
 
     });
 
-    user.on("MOVE", function(data) {
-        user.data.posX = data.posX;
-        user.data.posZ = data.posZ;
-        user.data.rotation = data.rotation;
-        //user.emit("MOVE", currentUser);
-        user.broadcast.emit("MOVE", user.data);
-        //console.log(currentUser.name + " move to " + data.rotation);
+    user.on("MATCH_START", function (data) {
+        
+        console.log("Start Match "+ data.matchID);
+
+        var playerNumber = 0;
+        var matchIndex = -1;
+
+        // first find the current match in matches list
+        for (var i = 0; i < matches.length; i++) {
+            if(matches[i].matchID == data.matchID)
+            {
+                matchIndex = i;
+                break;
+            }
+        }
+
+        // set start positions for each player in match and send match start
+        for (var i = 0; i < clients.length; i++) {
+            if (clients[i].data.matchID == user.data.matchID) {
+                clients[i].data.pos = matches[matchIndex].startPos[playerNumber];
+                io.to(data.matchID).emit("MATCH_START", clients[i].data);
+                playerNumber++;
+            }
+        };
+
     });
 
-    // if get spawn bullet from client send back to this client AND all others
-    user.on("SPAWN_BULLET", function (data) {
-        io.emit("SPAWN_BULLET", data);
+
+    user.on("PLAYER_MOVETO", function(data) {
+
+        user.data.pos = data.pos;
+
+        // send to all others
+        user.broadcast.emit("PLAYER_MOVETO", user.data);
+
+        console.log(user.data.name + " move to " + data.pos);
+    });
+
+    // if get spawn bomb from client send back to this client AND all others
+    user.on("PLAYER_SPAWNBOMB", function () {
+
+        console.log(user.data.name+ " planted a bomb.");
+        io.to(user.data.matchID).emit("PLAYER_SPAWNBOMB", user.data);
 
     });
 
@@ -140,7 +177,8 @@ io.on("connection", function(user) {
                 clients.splice(i, 1);
             }
         };
-    })
+    });
+
 });
 
 server.listen(app.get('port'), function ()
