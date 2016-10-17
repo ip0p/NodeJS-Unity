@@ -45,7 +45,7 @@ io.on("connection", function(user) {
         user.data.name = data.name;
 
         // prepare data
-        var match = {matchID:"", startPos: [] };
+        var match = { matchID:"", startPos: [], powerups: [[]] };
 
         // debug
         user.data.matchID = data.matchID;
@@ -62,7 +62,20 @@ io.on("connection", function(user) {
         match.startPos.push(data.spawn2);
         match.startPos.push(data.spawn3);
 
-        console.log(match.name);
+        // generate power ups
+        for (var x = 0; x < 50; x++) 
+        {
+            for (var z = 0; z < 50; z++) {
+                var powerup = { pos: x+"x"+z, type: 0 };
+
+                if(getRandomInt(0,100) <= 10)
+                {
+                    powerup.type = 1;
+                }
+
+                match.powerups.push(powerup);
+            }
+        }
 
         // add match to array
         matches.push(match);
@@ -72,11 +85,6 @@ io.on("connection", function(user) {
         user.join(user.data.matchID);
         io.to(user.data.matchID).emit("MATCH_CREATED");
 
-        console.log(match.matchID);
-        console.log(match.startPos.length);
-        for (var i = 0; i < match.startPos.length; i++) {
-            console.log(match.startPos[i]);
-        }
     });
 
     user.on("JOIN_MATCH", function (data) {
@@ -157,11 +165,36 @@ io.on("connection", function(user) {
         console.log(user.data.name + " move to " + data.pos);
     });
 
-    // if get spawn bomb from client send back to this client AND all others
-    user.on("PLAYER_SPAWNBOMB", function () {
+    // if get spawn bomb and bomb pos from client send back to this client AND all others
+    user.on("PLAYER_SPAWNBOMB", function (data) {
 
-        console.log(user.data.name+ " planted a bomb.");
+        user.data.pos = data.pos;
+
+        console.log(user.data.name+ " planted a bomb. At " + data.pos);
         io.to(user.data.matchID).emit("PLAYER_SPAWNBOMB", user.data);
+
+    });
+
+    user.on("EXPLOSION", function (data) {
+
+        var matchIndex = -1;
+
+        // first find the current match in matches list
+        for (var i = 0; i < matches.length; i++) {
+            if(matches[i].matchID == user.data.matchID)
+            {
+                matchIndex = i;
+                break;
+            }
+        }
+
+        for (var i = 0; i < matches[matchIndex].powerups.length; i++) {
+            if(matches[matchIndex].powerups[i].pos == data.pos && matches[matchIndex].powerups[i].type > 0)
+            {
+                console.log("spawn powerup type " + matches[matchIndex].powerups[i].type);
+                user.emit("POWERUP", matches[matchIndex].powerups[i]);
+            }
+        }
 
     });
 
@@ -186,3 +219,18 @@ server.listen(app.get('port'), function ()
     console.log("------------------- SERVER IS RUNNING! YES BABY! :D");
     console.log("---------------------------------------------------");
 });
+
+/**
+ * Returns a random number between min (inclusive) and max (exclusive)
+ */
+function getRandomArbitrary(min, max) {
+    return Math.random() * (max - min) + min;
+}
+
+/**
+ * Returns a random integer between min (inclusive) and max (inclusive)
+ * Using Math.round() will give you a non-uniform distribution!
+ */
+function getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+}
