@@ -1,3 +1,4 @@
+var colors = require('colors');
 var express = require('express');
 var app = express();
 
@@ -246,9 +247,9 @@ io.on("connection", function(user) {
 
 server.listen(app.get('port'), function ()
 {
-    console.log("---------------------------------------------------");
-    console.log("------------------- SERVER IS RUNNING! YES BABY! :D");
-    console.log("---------------------------------------------------");
+    console.log("-----------------------------------------------------------------------" .rainbow);
+    console.log("------------------- SERVER IS RUNNING! YES BABY! :D -------------------" .green);
+    console.log("-----------------------------------------------------------------------" .rainbow);
 });
 
 /**
