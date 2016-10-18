@@ -46,8 +46,8 @@ io.on("connection", function(user) {
         // set user name
         user.data.name = data.name;
 
-        // prepare data
-        var match = { matchID:"", startPos: [], powerups: [[]] };
+        // create match object
+        var match = { matchID:"", maxPlayers: 4, currentPlayers: 0, startPos: [], powerups: [[]] };
 
         // debug
         user.data.matchID = data.matchID;
@@ -88,10 +88,14 @@ io.on("connection", function(user) {
 
         // add match to array
         matches.push(match);
+
+        // save match to user
         user.match = match;
 
-        // join room
+        // join room and increase player counter
         user.join(user.data.matchID);
+        match.currentPlayers++;
+
         io.to(user.data.matchID).emit("MATCH_CREATED");
 
         io.emit("UPDATE_MATCHLIST", {data: matches});
@@ -155,6 +159,27 @@ io.on("connection", function(user) {
 
     });
 
+
+    user.on("MATCH_DORESTART", function (data) {
+        
+        console.log("Restart Match "+ data.matchID);
+
+        var playerNumber = 0;
+        var match = getMatchByID(user.data.matchID);
+
+        // set start positions for each player in match and send match start
+        for (var i = 0; i < clients.length; i++) {
+            if (clients[i].data.matchID == user.data.matchID) {
+                clients[i].data.pos = match.startPos[playerNumber];
+                clients[i].data.range = 1;
+                clients[i].data.bombs = 1;
+                io.to(data.matchID).emit("MATCH_RESTART", clients[i].data);
+                playerNumber++;
+            }
+        };
+
+    });
+
     user.on("PLAYER_MOVETO", function(data) {
 
         user.data.pos = data.pos;
@@ -208,7 +233,6 @@ io.on("connection", function(user) {
                     // set show to true to allow players to pickup the powerup
                     match.powerups[i].show = true;
 
-
                     console.log("spawn powerup type " + match.powerups[i].type);
                     user.emit("POWERUP", match.powerups[i]);
                 }
@@ -220,7 +244,7 @@ io.on("connection", function(user) {
             if(user.data.pos == data.pos)
             {
                 console.log("player died -> " + user.data.name);
-                //io.to(user.data.matchID).emit("PLAYER_DIE", user.data);
+                io.to(user.data.matchID).emit("PLAYER_DIE", user.data);
             }
             
         }
@@ -228,10 +252,7 @@ io.on("connection", function(user) {
 
     user.on("disconnect", function() {
 
-        //console.log("User disconnected "+ user.matchID);
-
-        //user.broadcast.emit("USER_DISCONNECTED", user.data);
-
+        // remove player from client list and send kill to all players
         for (var i = 0; i < clients.length; i++) {
             if (clients[i] === user) {
                 console.log("User " + clients[i].data.name + " disconnected");
@@ -239,6 +260,18 @@ io.on("connection", function(user) {
 
                 // send kill player to the match
                 io.to(user.data.matchID).emit("PLAYER_DIE", user.data);
+
+                // remove player created match from match list
+                // TODO find another way since this causing a crash because other functions use the matches
+                var matchIndex = matches.indexOf(user.match);
+                matches.splice(matchIndex, 1);
+
+                //if(matches.currentPlayers <= 1)
+                //    matches.splice(user.match, 1);
+                io.emit("UPDATE_MATCHLIST", {data: matches});
+
+                console.log(matches.length);
+
             }
         };
     });
@@ -247,9 +280,10 @@ io.on("connection", function(user) {
 
 server.listen(app.get('port'), function ()
 {
+    process.stdout.write('\033c'); // clear console
     console.log("-----------------------------------------------------------------------" .rainbow);
     console.log("------------------- SERVER IS RUNNING! YES BABY! :D -------------------" .green);
-    console.log("-----------------------------------------------------------------------" .rainbow);
+    console.log("-----------------------------------------------------------------------" .red);
 });
 
 /**
