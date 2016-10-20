@@ -203,25 +203,23 @@ io.on("connection", function(user) {
 
     user.on("EXPLOSION", function (data) {
 
-    	console.log(data);
         var match = getMatchByID(user.data.matchID);
 
     	for (var i = 0; i < data.pos.length; i++) {
     		
     		if(data.destroy[i] == true)
     		{
-    			for (var i = 0; i < match.powerups.length; i++) 
+    			for (var p = 0; p < match.powerups.length; p++) 
     			{
-                
-                // check if there is a powerup at the pos
-                if(match.powerups[i].pos == data.pos[i] && match.powerups[i].type > 0)
-                {
-                    // set show to true to allow players to pickup the powerup
-                    match.powerups[i].show = true;
+	                // check if there is a powerup at the pos
+	                if(match.powerups[p].pos == data.pos[i] && match.powerups[p].type > 0)
+	                {
+	                    // set show to true to allow players to pickup the powerup
+	                    match.powerups[p].show = true;
 
-                    console.log("spawn powerup type " + match.powerups[i].type);
-                    user.emit("POWERUP", match.powerups[i]);
-                }
+	                    console.log("spawn powerup type " + match.powerups[p].type);
+	                    user.emit("POWERUP", match.powerups[p]);
+	                }
             	}
         	}
             else
