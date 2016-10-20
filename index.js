@@ -5,7 +5,9 @@ var app = express();
 var server = require('http').createServer(app)
 var io = require('socket.io').listen(server);
 
-app.set('port', process.env.PORT || 3000)
+const PORT = process.env.PORT || 3000;
+
+app.set('port', PORT)
 
 var clients = []; // stores all clients
 var matches = []; // stores all created matches
@@ -278,9 +280,9 @@ io.on("connection", function(user) {
 
 });
 
-server.listen(app.get('port'), function ()
+server.listen(PORT, function ()
 {
-    console.log("Starting server on " + app.get('port'));
+    console.log(`Listening on ${PORT}`);
     //process.stdout.write('\033c'); // clear console
     console.log("-----------------------------------------------------------------------" .rainbow);
     console.log("------------------- SERVER IS RUNNING! YES BABY! :D -------------------" .green);
