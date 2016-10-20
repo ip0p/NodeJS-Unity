@@ -116,7 +116,7 @@ io.on("connection", function(user) {
         if(otherPlayers.length != 0)
         {
             console.log("Send other players to " + user.data.name)
-            user.emit("OTHER_PLAYERS",  { otherPlayers } );
+            user.emit("OTHER_PLAYERS",  { data: otherPlayers } );
         }
 
         // send to everyone that i am connected
@@ -126,20 +126,25 @@ io.on("connection", function(user) {
 
     user.on("MATCH_START", function (data) {
         
+        // gets match start from match creator user and sends back match start to all
+        
         console.log("Start Match "+ data.matchID);
 
         var playerNumber = 0;
         var match = getMatchByID(user.data.matchID);
 
+        var players = [];
+
         // set start positions for each player in match and send match start
         for (var i = 0; i < clients.length; i++) {
             if (clients[i].data.matchID == user.data.matchID) {
                 clients[i].data.pos = match.startPos[playerNumber];
-                io.to(data.matchID).emit("MATCH_START", clients[i].data);
+                players.push(clients[i].data);
                 playerNumber++;
             }
         };
 
+        io.to(data.matchID).emit("MATCH_START", {data: players});
     });
 
 
@@ -207,9 +212,7 @@ io.on("connection", function(user) {
         	return;
 
         var match = getMatchByID(user.data.matchID);
-
-
-
+        
     	for (var i = 0; i < data.pos.length; i++) {
     		
     		if(data.destroy[i] == true)
