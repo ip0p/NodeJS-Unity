@@ -212,7 +212,7 @@ io.on("connection", function(user) {
         	return;
 
         var match = getMatchByID(user.data.matchID);
-        
+
     	for (var i = 0; i < data.pos.length; i++) {
     		
     		if(data.destroy[i] == true)
@@ -278,7 +278,8 @@ io.on("connection", function(user) {
     // simple ping funtion gets ping sends ping back
     user.on("PING", function() {
 
-        user.emit("PING");
+    	//console.log(Date.now().toString());
+        user.emit("PING", {time: ""+Date.now().toString()});
     });
 
     user.on("disconnect", function() {
