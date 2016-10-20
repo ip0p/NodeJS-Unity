@@ -265,6 +265,12 @@ io.on("connection", function(user) {
         }
     });
 
+    // simple ping funtion gets ping sends ping back
+    user.on("PING", function() {
+
+        user.emit("PING");
+    });
+
     user.on("disconnect", function() {
 
         // remove player from client list and send kill to all players
