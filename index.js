@@ -203,7 +203,12 @@ io.on("connection", function(user) {
 
     user.on("EXPLOSION", function (data) {
 
+    	if(data == null)
+        	return;
+
         var match = getMatchByID(user.data.matchID);
+
+
 
     	for (var i = 0; i < data.pos.length; i++) {
     		
