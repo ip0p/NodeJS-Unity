@@ -33,7 +33,7 @@ io.on("connection", function(user) {
         console.log('New User with ID ' + playerID + ' connected!');
 
         // prepare data
-        user.data = { playerID: 0, name: "", matchID: "", pos: "", bombs: 1, range: 1 }
+        user.data = { playerID: 0, name: "", matchID: "", pos: "", score: 0, bombs: 1, range: 1 }
 
         user.data.playerID = playerID;
         user.emit("SET_PLAYERID", { playerID: playerID })
@@ -66,27 +66,7 @@ io.on("connection", function(user) {
         match.startPos.push(data.spawn2);
         match.startPos.push(data.spawn3);
 
-        // generate power ups
-        for (var x = 0; x < 50; x++) 
-        {
-            for (var z = 0; z < 50; z++) {
-                var powerup = { pos: x+"x"+z, type: 0, show: false };
-
-                if(getRandomInt(0,100) <= 20)
-                {
-                    if(getRandomInt(0,100) <= 50)
-                    {
-                        powerup.type = 1;
-                    }
-                    else
-                    {
-                        powerup.type = 2;
-                    }
-                }
-
-                match.powerups.push(powerup);
-            }
-        }
+        match.powerups = generatePowerUps();
 
         // add match to array
         matches.push(match);
@@ -112,8 +92,9 @@ io.on("connection", function(user) {
         console.log(user.data.playerID + "joined " + data.matchID);
         user.data.matchID = data.matchID;
 
-        // join room
+        // join room and increase player counter
         user.join(user.data.matchID);
+        getMatchByID(user.data.matchID).currentPlayers++;
     });
 
     user.on("READY", function (data) {
@@ -164,7 +145,7 @@ io.on("connection", function(user) {
 
     user.on("MATCH_DORESTART", function (data) {
         
-        console.log("Restart Match "+ data.matchID);
+        console.log("Restart Match "+ user.data.matchID);
 
         var playerNumber = 0;
         var match = getMatchByID(user.data.matchID);
@@ -175,7 +156,7 @@ io.on("connection", function(user) {
                 clients[i].data.pos = match.startPos[playerNumber];
                 clients[i].data.range = 1;
                 clients[i].data.bombs = 1;
-                io.to(data.matchID).emit("MATCH_RESTART", clients[i].data);
+                io.to(user.data.matchID).emit("MATCH_RESTART", clients[i].data);
                 playerNumber++;
             }
         };
@@ -222,10 +203,11 @@ io.on("connection", function(user) {
 
     user.on("EXPLOSION", function (data) {
 
+        var match = getMatchByID(user.data.matchID);
+
         // destroy means that a block got destroyed so there could be a powerup
         if(data.destroy == "True")
         {
-            var match = getMatchByID(user.data.matchID);
 
             for (var i = 0; i < match.powerups.length; i++) {
                 
@@ -247,8 +229,39 @@ io.on("connection", function(user) {
             {
                 console.log("player died -> " + user.data.name);
                 io.to(user.data.matchID).emit("PLAYER_DIE", user.data);
+                match.currentPlayers--;
+
+                console.log(match.currentPlayers);
+
+                // if last player give score and send match restart
+                if(match.currentPlayers <= 1)
+                {
+                	user.data.score++;
+                	console.log(user.data.name+" wins the match. score is now "+ user.data.score);
+
+			        console.log("Restart Match "+ user.data.matchID);
+
+			        var playerNumber = 0;
+			        var match = getMatchByID(user.data.matchID);
+
+			        // set start positions for each player in match and send match start
+			        for (var i = 0; i < clients.length; i++) {
+			            if (clients[i].data.matchID == user.data.matchID) {
+			                clients[i].data.pos = match.startPos[playerNumber];
+			                clients[i].data.range = 1;
+			                clients[i].data.bombs = 1;
+			                io.to(user.data.matchID).emit("MATCH_RESTART", clients[i].data);
+			                playerNumber++;
+			            }
+			        };
+
+			        // reset currentplayers
+			        match.currentPlayers = playerNumber;
+
+			        // regenerate powerups
+			        match.powerups = generatePowerUps();
+                }
             }
-            
         }
     });
 
@@ -273,7 +286,6 @@ io.on("connection", function(user) {
                 io.emit("UPDATE_MATCHLIST", {data: matches});
 
                 console.log(matches.length);
-
             }
         };
     });
@@ -318,4 +330,38 @@ function getMatchByID(matchID)
     }
 
     return match;
+}
+
+function generatePowerUps()
+{
+
+
+	var powerups = [];
+
+	    // generate power ups // TODO make map size variable
+        for (var x = 0; x < 50; x++) 
+        {
+            for (var z = 0; z < 50; z++) {
+                
+
+                if(getRandomInt(0,100) <= 20)
+                {
+					var powerup = { pos: x+"x"+z, type: 0, show: false };
+
+                    if(getRandomInt(0,100) <= 50)
+                    {
+                        powerup.type = 1;
+                    }
+                    else
+                    {
+                        powerup.type = 2;
+                    }
+
+                    powerups.push(powerup);
+                }
+            }
+        }
+
+        console.log("Generated powerups array length "+ powerups.length);
+        return powerups;
 }
