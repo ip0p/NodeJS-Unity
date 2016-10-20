@@ -203,16 +203,18 @@ io.on("connection", function(user) {
 
     user.on("EXPLOSION", function (data) {
 
+    	console.log(data);
         var match = getMatchByID(user.data.matchID);
 
-        // destroy means that a block got destroyed so there could be a powerup
-        if(data.destroy == "True")
-        {
-
-            for (var i = 0; i < match.powerups.length; i++) {
+    	for (var i = 0; i < data.pos.length; i++) {
+    		
+    		if(data.destroy[i] == true)
+    		{
+    			for (var i = 0; i < match.powerups.length; i++) 
+    			{
                 
                 // check if there is a powerup at the pos
-                if(match.powerups[i].pos == data.pos && match.powerups[i].type > 0)
+                if(match.powerups[i].pos == data.pos[i] && match.powerups[i].type > 0)
                 {
                     // set show to true to allow players to pickup the powerup
                     match.powerups[i].show = true;
@@ -220,49 +222,51 @@ io.on("connection", function(user) {
                     console.log("spawn powerup type " + match.powerups[i].type);
                     user.emit("POWERUP", match.powerups[i]);
                 }
-            }
-        }
-        else
-        {
-            // if the player is at this position kill player
-            if(user.data.pos == data.pos)
-            {
-                console.log("player died -> " + user.data.name);
-                io.to(user.data.matchID).emit("PLAYER_DIE", user.data);
-                match.currentPlayers--;
+            	}
+        	}
+            else
+    		{
+	    		// if the player is at this position kill player
+	            if(user.data.pos == data.pos[i])
+	            {
+	                console.log("player died -> " + user.data.name+" at "+user.data.pos);
+	                io.to(user.data.matchID).emit("PLAYER_DIE", user.data);
+	                match.currentPlayers--;
 
-                console.log(match.currentPlayers);
+	                console.log(match.currentPlayers);
 
-                // if last player give score and send match restart
-                if(match.currentPlayers <= 1)
-                {
-                	user.data.score++;
-                	console.log(user.data.name+" wins the match. score is now "+ user.data.score);
+	                // if last player give score and send match restart
+	                if(match.currentPlayers <= 1)
+	                {
+	                	user.data.score++;
+	                	console.log(user.data.name+" wins the match. score is now "+ user.data.score);
 
-			        console.log("Restart Match "+ user.data.matchID);
+				        console.log("Restart Match "+ user.data.matchID);
 
-			        var playerNumber = 0;
-			        var match = getMatchByID(user.data.matchID);
+				        var playerNumber = 0;
 
-			        // set start positions for each player in match and send match start
-			        for (var i = 0; i < clients.length; i++) {
-			            if (clients[i].data.matchID == user.data.matchID) {
-			                clients[i].data.pos = match.startPos[playerNumber];
-			                clients[i].data.range = 1;
-			                clients[i].data.bombs = 1;
-			                io.to(user.data.matchID).emit("MATCH_RESTART", clients[i].data);
-			                playerNumber++;
-			            }
-			        };
+				        // set start positions for each player in match and send match start
+				        for (var i = 0; i < clients.length; i++) {
+				            if (clients[i].data.matchID == user.data.matchID) {
+				                clients[i].data.pos = match.startPos[playerNumber];
+				                clients[i].data.range = 1;
+				                clients[i].data.bombs = 1;
+				                io.to(user.data.matchID).emit("MATCH_RESTART", clients[i].data);
+				                playerNumber++;
+				            }
+				        };
 
-			        // reset currentplayers
-			        match.currentPlayers = playerNumber;
+				        // reset currentplayers
+				        match.currentPlayers = playerNumber;
 
-			        // regenerate powerups
-			        match.powerups = generatePowerUps();
-                }
-            }
-        }
+				        // regenerate powerups
+				        match.powerups = generatePowerUps();
+	                }
+	                // break here to make sure player isnt killed twice
+	                break;
+	            }
+    		}
+    	}
     });
 
     // simple ping funtion gets ping sends ping back
