@@ -33,7 +33,7 @@ io.on("connection", function(user) {
         console.log('New User with ID ' + playerID + ' connected!');
 
         // prepare data
-        user.data = { playerID: 0, name: "", matchID: "", pos: "", score: 0, bombs: 1, range: 1 }
+        user.data = { playerID: 0, dead: false, name: "", matchID: "", pos: "", score: 0, bombs: 1, range: 1 }
 
         user.data.playerID = playerID;
         user.emit("SET_PLAYERID", { playerID: playerID })
@@ -209,7 +209,10 @@ io.on("connection", function(user) {
     user.on("EXPLOSION", function (data) {
 
     	if(data == null)
+        {
+            console.log("ERROR data is null!!!")
         	return;
+        }
 
         var match = getMatchByID(user.data.matchID);
 
@@ -237,42 +240,55 @@ io.on("connection", function(user) {
 	            {
 	                console.log("player died -> " + user.data.name+" at "+user.data.pos);
 	                io.to(user.data.matchID).emit("PLAYER_DIE", user.data);
-	                match.currentPlayers--;
-
-	                console.log(match.currentPlayers);
-
-	                // if last player give score and send match restart
-	                if(match.currentPlayers <= 1)
-	                {
-	                	user.data.score++;
-	                	console.log(user.data.name+" wins the match. score is now "+ user.data.score);
-
-				        console.log("Restart Match "+ user.data.matchID);
-
-				        var playerNumber = 0;
-
-				        // set start positions for each player in match and send match start
-				        for (var i = 0; i < clients.length; i++) {
-				            if (clients[i].data.matchID == user.data.matchID) {
-				                clients[i].data.pos = match.startPos[playerNumber];
-				                clients[i].data.range = 1;
-				                clients[i].data.bombs = 1;
-				                io.to(user.data.matchID).emit("MATCH_RESTART", clients[i].data);
-				                playerNumber++;
-				            }
-				        };
-
-				        // reset currentplayers
-				        match.currentPlayers = playerNumber;
-
-				        // regenerate powerups
-				        match.powerups = generatePowerUps();
-	                }
+                    user.data.dead = true;
 	                // break here to make sure player isnt killed twice
 	                break;
 	            }
+                else
+                {
+                    var players = getUserInMatch(user.data.matchID);
+
+                    for (var i = 0; i < players.length; i++) {
+                        if(players[i].pos == data.pos[i])
+                        {
+                            console.log("another player died");
+                            players[i].dead = true;
+                        }
+                    }
+                }
     		}
     	}
+
+        // if last player give score and send match restart
+        if(getAlivePlayers(user.data.matchID) <= 1)
+        {
+            user.data.score++;
+            console.log(user.data.name+" wins the match. score is now "+ user.data.score);
+
+            console.log("Restart Match "+ user.data.matchID);
+
+            var playerNumber = 0;
+            var players = [];
+
+            // set start positions for each player in match and send match start
+            for (var i = 0; i < clients.length; i++) {
+                if (clients[i].data.matchID == user.data.matchID) {
+                    clients[i].data.pos = match.startPos[playerNumber];
+                    clients[i].data.dead = false;
+                    clients[i].data.range = 1;
+                    clients[i].data.bombs = 1;
+                    playerNumber++;
+                    players.push(clients[i].data);
+                }
+            };
+
+            io.to(user.data.matchID).emit("MATCH_RESTART", {data: players});
+
+            // regenerate powerups
+            match.powerups = generatePowerUps();
+        }
+
+
     });
 
     // simple ping funtion gets ping sends ping back
@@ -349,10 +365,36 @@ function getMatchByID(matchID)
     return match;
 }
 
+function getAlivePlayers(matchID)
+{
+    var alivePlayers = 0;
+    var players = getUserInMatch(matchID);
+
+    // first find the current match in matches list
+    for (var i = 0; i < players.length; i++) {
+        if(players[i].dead == false)
+        {
+            alivePlayers++;
+        }
+    }
+
+    return alivePlayers;
+}
+
+function getUserInMatch(matchID)
+{
+    var user = [];
+
+    for (var i = 0; i < clients.length; i++) {
+        if(clients[i].data.matchID == matchID)
+            user.push(clients[i].data);
+    }
+
+    return user;
+}
+
 function generatePowerUps()
 {
-
-
 	var powerups = [];
 
 	    // generate power ups // TODO make map size variable
