@@ -208,6 +208,8 @@ io.on("connection", function(user) {
 
     user.on("EXPLOSION", function (data) {
 
+
+
     	if(data == null)
         {
             console.log("ERROR data is null!!!")
@@ -248,11 +250,11 @@ io.on("connection", function(user) {
                 {
                     var players = getUserInMatch(user.data.matchID);
 
-                    for (var i = 0; i < players.length; i++) {
-                        if(players[i].pos == data.pos[i])
+                    for (var pl = 0; pl < players.length; pl++) {
+                        if(players[pl].pos == data.pos[i])
                         {
                             console.log("another player died");
-                            players[i].dead = true;
+                            players[pl].dead = true;
                         }
                     }
                 }
@@ -260,7 +262,7 @@ io.on("connection", function(user) {
     	}
 
         // if last player give score and send match restart
-        if(getAlivePlayers(user.data.matchID) <= 1)
+        if(user.data.dead == false && getAlivePlayers(user.data.matchID) <= 1)
         {
             user.data.score++;
             console.log(user.data.name+" wins the match. score is now "+ user.data.score);
