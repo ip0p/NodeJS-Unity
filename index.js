@@ -231,40 +231,35 @@ io.on("connection", function(user) {
 	                    match.powerups[p].show = true;
 
 	                    console.log("spawn powerup type " + match.powerups[p].type);
-	                    user.emit("POWERUP", match.powerups[p]);
+	                    //user.emit("POWERUP", match.powerups[p]);
+	                	io.to(user.data.matchID).emit("POWERUP", match.powerups[p]);
+
 	                }
             	}
         	}
             else
     		{
 	    		// if the player is at this position kill player
-	            if(user.data.pos == data.pos[i])
-	            {
-	                console.log("player died -> " + user.data.name+" at "+user.data.pos);
-	                io.to(user.data.matchID).emit("PLAYER_DIE", user.data);
-                    user.data.dead = true;
-	                // break here to make sure player isnt killed twice
-	                break;
-	            }
-                else
-                {
-                    var players = getUserInMatch(user.data.matchID);
 
-                    for (var pl = 0; pl < players.length; pl++) {
-                        if(players[pl].pos == data.pos[i])
-                        {
-                            console.log("another player died");
-                            players[pl].dead = true;
-                        }
+                var players = getUserInMatch(user.data.matchID);
+
+                for (var pl = 0; pl < players.length; pl++) {
+                    if(players[pl].pos == data.pos[i])
+                    {
+		                console.log("player died -> " + players[pl].name+" at "+players[pl].pos);
+		                io.to(user.data.matchID).emit("PLAYER_DIE", players[pl]);
+	                    players[pl].dead = true;
+		                // break here to make sure player isnt killed twice
+		                break;
                     }
                 }
+
     		}
     	}
 
         // if last player give score and send match restart
-        if(user.data.dead == false && getAlivePlayers(user.data.matchID) <= 1)
+        if(getAlivePlayers(user.data.matchID) <= 1)
         {
-            user.data.score++;
             console.log(user.data.name+" wins the match. score is now "+ user.data.score);
 
             console.log("Restart Match "+ user.data.matchID);
@@ -275,6 +270,10 @@ io.on("connection", function(user) {
             // set start positions for each player in match and send match start
             for (var i = 0; i < clients.length; i++) {
                 if (clients[i].data.matchID == user.data.matchID) {
+
+                	if(clients[i].data.dead == false)
+                		clients[i].data.score++;
+
                     clients[i].data.pos = match.startPos[playerNumber];
                     clients[i].data.dead = false;
                     clients[i].data.range = 1;
