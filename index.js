@@ -174,7 +174,7 @@ io.on("connection", function(user) {
 
         // send to all others in the room
         user.to(user.data.matchID).broadcast.emit("PLAYER_MOVETO", user.data);
-        console.log(user.data.name + " move to " + data.pos);
+        //console.log(user.data.name + " move to " + data.pos);
 
         var match = getMatchByID(user.data.matchID);
 
