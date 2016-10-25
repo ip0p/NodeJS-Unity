@@ -260,7 +260,7 @@ io.on("connection", function(user) {
     	}
 
         // if last player give score and send match restart
-        if(getAlivePlayers(user.data.matchID) <= 1)
+        if(getAlivePlayers(user.data.matchID) == 1)
         {
             console.log(user.data.name+" wins the match. score is now "+ user.data.score);
 
@@ -373,6 +373,10 @@ function getAlivePlayers(matchID)
 {
     var alivePlayers = 0;
     var players = getUserInMatch(matchID);
+
+    // for debugging
+    if(players.length == 1)
+        return 2;
 
     // first find the current match in matches list
     for (var i = 0; i < players.length; i++) {
