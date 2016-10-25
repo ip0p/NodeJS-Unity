@@ -33,7 +33,7 @@ io.on("connection", function(user) {
         console.log('New User with ID ' + playerID + ' connected!');
 
         // prepare data
-        user.data = { playerID: 0, dead: false, name: "", matchID: "", pos: "", score: 0, bombs: 1, range: 1 }
+        user.data = { playerID: 0, dead: false, name: "", matchID: "", pos: "", score: 0, bombs: 1, range: 1, speed: 1 }
 
         user.data.playerID = playerID;
         user.emit("SET_PLAYERID", { playerID: playerID })
