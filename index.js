@@ -210,8 +210,6 @@ io.on("connection", function(user) {
 
     user.on("EXPLOSION", function (data) {
 
-
-
     	if(data == null)
         {
             console.log("ERROR data is null!!!")
@@ -291,8 +289,6 @@ io.on("connection", function(user) {
             // regenerate powerups
             match.powerups = generatePowerUps();
         }
-
-
     });
 
     // simple ping funtion gets ping sends ping back
@@ -306,25 +302,31 @@ io.on("connection", function(user) {
 
         // remove player from client list and send kill to all players
         for (var i = 0; i < clients.length; i++) {
-            if (clients[i] === user) {
+            if (clients[i] == user) {
                 console.log("User " + clients[i].data.name + " disconnected");
                 clients.splice(i, 1);
 
                 // send kill player to the match
                 io.to(user.data.matchID).emit("PLAYER_DIE", user.data);
 
-                // remove player created match from match list
-                // TODO find another way since this causing a crash because other functions use the matches
+                // leave the room
                 var matchIndex = matches.indexOf(user.match);
                 matches.splice(matchIndex, 1);
 
-                //if(matches.currentPlayers <= 1)
-                //    matches.splice(user.match, 1);
-                io.emit("UPDATE_MATCHLIST", {data: matches});
+                if(user.match != null)
+                {
+                    var userInMatch = getUserInMatch(user.data.matchID);
 
-                console.log(matches.length);
+                    for (var i = 0; i < userInMatch.length; i++) {
+                        userInMatch[i].matchID = "";
+                    }
+                }
+
+                io.emit("UPDATE_MATCHLIST", {data: matches});
             }
         };
+
+        console.log("clients="+clients.length);
     });
 
 });
