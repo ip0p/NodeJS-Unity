@@ -189,6 +189,8 @@ io.on("connection", function(user) {
                 if(match.powerups[i].type == 2) // bombs
                     user.data.bombs++;
 
+                if(match.powerups[i].type == 3) // speed
+                    user.data.speed++;
                 // set show to false after pickup 
                 match.powerups[i].show = false;
 
@@ -278,6 +280,7 @@ io.on("connection", function(user) {
                     clients[i].data.dead = false;
                     clients[i].data.range = 1;
                     clients[i].data.bombs = 1;
+                    clients[i].data.speed = 1;
                     playerNumber++;
                     players.push(clients[i].data);
                 }
@@ -408,13 +411,17 @@ function generatePowerUps()
                 {
 					var powerup = { pos: x+"x"+z, type: 0, show: false };
 
-                    if(getRandomInt(0,100) <= 50)
+                    if(getRandomInt(0,100) <= 33)
                     {
                         powerup.type = 1;
                     }
-                    else
+                    else if (getRandomInt(0,100) <= 66)
                     {
                         powerup.type = 2;
+                    }
+                    else
+                    {
+                        powerup.type = 3;
                     }
 
                     powerups.push(powerup);
