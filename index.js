@@ -40,6 +40,7 @@ io.on("connection", function(user) {
 
         io.emit("UPDATE_MATCHLIST", {data: matches});
 
+        user.emit("SERVERMESSAGE", { message: "Welcome to BoomBots!"});
 
     });
 
@@ -49,7 +50,11 @@ io.on("connection", function(user) {
         user.data.name = data.name;
 
         // create match object
-        var match = { matchID:"", maxPlayers: 4, currentPlayers: 0, startPos: [], powerups: [[]] };
+        var match = { matchID:"", randomSeed: 0, maxPlayers: 4, currentPlayers: 0, startPos: [], powerups: [[]] };
+
+        match.randomSeed = getRandomInt(10000, 99999);
+
+        console.log(match.randomSeed)
 
         // debug
         user.data.matchID = data.matchID;
@@ -148,7 +153,7 @@ io.on("connection", function(user) {
             }
         };
 
-        io.to(data.matchID).emit("MATCH_START", {data: players});
+        io.to(data.matchID).emit("MATCH_START", {data: players, seed: getMatchByID(user.data.matchID).randomSeed});
     });
 
 
@@ -278,8 +283,21 @@ io.on("connection", function(user) {
             for (var i = 0; i < clients.length; i++) {
                 if (clients[i].data.matchID == user.data.matchID) {
 
-                	if(clients[i].data.dead == false && getAlivePlayers(user.data.matchID) == 1)
+                	if(clients[i].data.dead == false)
+                    {
                 		clients[i].data.score++;
+                        clients[i].emit("SERVERMESSAGE", { message: "You win!"});
+                    }
+                    else
+                    {
+                        clients[i].emit("SERVERMESSAGE", { message: "Lost!"});
+                    }
+
+
+                    if(getAlivePlayers(user.data.matchID) == 0)
+                    {
+                        clients[i].emit("SERVERMESSAGE", { message: "Draw!"});
+                    }
 
                     clients[i].data.pos = match.startPos[playerNumber];
                     clients[i].data.dead = false;
