@@ -61,10 +61,10 @@ io.on("connection", function(user) {
         match.matchID = user.data.matchID;
 
         // add startpositions to match
-        match.startPos.push(data.spawn0);
-        match.startPos.push(data.spawn1);
-        match.startPos.push(data.spawn2);
-        match.startPos.push(data.spawn3);
+        for (var i = 0; i < data.startPositions.length; i++) 
+        {
+            match.startPos.push(data.startPositions[i]);
+        }
 
         match.powerups = generatePowerUps();
 
@@ -80,6 +80,7 @@ io.on("connection", function(user) {
 
         io.to(user.data.matchID).emit("MATCH_CREATED");
 
+        // trigger matchlist update on all clients
         io.emit("UPDATE_MATCHLIST", {data: matches});
 
     });
@@ -95,6 +96,9 @@ io.on("connection", function(user) {
         // join room and increase player counter
         user.join(user.data.matchID);
         getMatchByID(user.data.matchID).currentPlayers++;
+
+        // trigger matchlist update on all clients
+        io.emit("UPDATE_MATCHLIST", {data: matches});
     });
 
     user.on("READY", function (data) {
@@ -217,6 +221,7 @@ io.on("connection", function(user) {
         }
 
         var match = getMatchByID(user.data.matchID);
+        var playerDied = false;
 
     	for (var i = 0; i < data.pos.length; i++) {
     		
@@ -249,6 +254,8 @@ io.on("connection", function(user) {
 		                console.log("player died -> " + players[pl].name+" at "+players[pl].pos);
 		                io.to(user.data.matchID).emit("PLAYER_DIE", players[pl]);
 	                    players[pl].dead = true;
+                        playerDied = true;
+
 		                // break here to make sure player isnt killed twice
 		                break;
                     }
@@ -258,7 +265,7 @@ io.on("connection", function(user) {
     	}
 
         // if last player give score and send match restart
-        if(getAlivePlayers(user.data.matchID) == 1)
+        if(getAlivePlayers(user.data.matchID) <= 1 && playerDied == true)
         {
             console.log(user.data.name+" wins the match. score is now "+ user.data.score);
 
@@ -271,7 +278,7 @@ io.on("connection", function(user) {
             for (var i = 0; i < clients.length; i++) {
                 if (clients[i].data.matchID == user.data.matchID) {
 
-                	if(clients[i].data.dead == false)
+                	if(clients[i].data.dead == false && getAlivePlayers(user.data.matchID) == 1)
                 		clients[i].data.score++;
 
                     clients[i].data.pos = match.startPos[playerNumber];
@@ -322,6 +329,7 @@ io.on("connection", function(user) {
                     }
                 }
 
+                // trigger matchlist update on all clients
                 io.emit("UPDATE_MATCHLIST", {data: matches});
             }
         };
@@ -333,8 +341,8 @@ io.on("connection", function(user) {
 
 server.listen(PORT, function ()
 {
+    process.stdout.write('\033c'); // clear console
     console.log(`Listening on ${PORT}`);
-    //process.stdout.write('\033c'); // clear console
     console.log("-----------------------------------------------------------------------" .rainbow);
     console.log("------------------- SERVER IS RUNNING! YES BABY! :D -------------------" .green);
     console.log("-----------------------------------------------------------------------" .red);
@@ -375,10 +383,6 @@ function getAlivePlayers(matchID)
 {
     var alivePlayers = 0;
     var players = getUserInMatch(matchID);
-
-    // for debugging
-    if(players.length == 1)
-        return 2;
 
     // first find the current match in matches list
     for (var i = 0; i < players.length; i++) {
