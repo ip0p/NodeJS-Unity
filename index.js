@@ -153,7 +153,7 @@ io.on("connection", function(user) {
             }
         };
 
-        io.to(data.matchID).emit("MATCH_START", {data: players, seed: getMatchByID(user.data.matchID).randomSeed});
+        io.to(data.matchID).emit("MATCH_START", {data: players, seed: getMatchByID(user.data.matchID).randomSeed, time: ""+Date.now().toString()});
     });
 
 
@@ -260,9 +260,6 @@ io.on("connection", function(user) {
 		                io.to(user.data.matchID).emit("PLAYER_DIE", players[pl]);
 	                    players[pl].dead = true;
                         playerDied = true;
-
-		                // break here to make sure player isnt killed twice
-		                break;
                     }
                 }
 
@@ -309,7 +306,7 @@ io.on("connection", function(user) {
                 }
             };
 
-            io.to(user.data.matchID).emit("MATCH_RESTART", {data: players});
+            io.to(user.data.matchID).emit("MATCH_RESTART", {data: players, time: ""+Date.now().toString()});
 
             // regenerate powerups
             match.powerups = generatePowerUps();
