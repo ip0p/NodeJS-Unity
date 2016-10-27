@@ -40,7 +40,7 @@ io.on("connection", function(user) {
 
         io.emit("UPDATE_MATCHLIST", {data: matches});
 
-        user.emit("SERVERMESSAGE", { message: "Welcome to BoomBots!"});
+        //user.emit("SERVERMESSAGE", { message: "Welcome to BoomBots!"});
 
     });
 
@@ -182,7 +182,7 @@ io.on("connection", function(user) {
         user.data.pos = data.pos;
 
         // send to all others in the room
-        user.to(user.data.matchID).broadcast.emit("PLAYER_MOVETO", user.data);
+        user.to(user.data.matchID).broadcast.emit("PLAYER_MOVETO", data);
         //console.log(user.data.name + " move to " + data.pos);
 
         var match = getMatchByID(user.data.matchID);
@@ -212,8 +212,8 @@ io.on("connection", function(user) {
     // if get spawn bomb and bomb pos from client send back to this client AND all others
     user.on("PLAYER_SPAWNBOMB", function (data) {
 
-        console.log(user.data.name+ " planted a bomb. At " + user.data.pos);
-        io.to(user.data.matchID).emit("PLAYER_SPAWNBOMB", user.data);
+        console.log(user.data.name+ " planted a bomb. At " + data.pos);
+        io.to(user.data.matchID).emit("PLAYER_SPAWNBOMB", { pos: data.pos, playerID: user.data.playerID});
 
     });
 
