@@ -182,7 +182,7 @@ io.on("connection", function(user) {
         user.data.pos = data.pos;
 
         // send to all others in the room
-        user.to(user.data.matchID).broadcast.emit("PLAYER_MOVETO", data);
+        user.to(user.data.matchID).volatile.emit("PLAYER_MOVETO", data);
         //console.log(user.data.name + " move to " + data.pos);
 
         var match = getMatchByID(user.data.matchID);
