@@ -205,6 +205,8 @@ io.on("connection", function(user) {
 
                 // send updated player information to room
                 io.to(user.data.matchID).emit("PLAYER_UPDATE", user.data);
+                if(match.powerups[i].type != 0)
+                io.to(user.data.matchID).emit("POWERUP_DESTROY", user.data);
             }
         }
     });
@@ -242,7 +244,7 @@ io.on("connection", function(user) {
 
 	                    console.log("spawn powerup type " + match.powerups[p].type);
 	                    //user.emit("POWERUP", match.powerups[p]);
-	                	io.to(user.data.matchID).emit("POWERUP", match.powerups[p]);
+	                	io.to(user.data.matchID).emit("POWERUP_SPAWN", match.powerups[p]);
 
 	                }
             	}
